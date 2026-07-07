@@ -1,0 +1,12 @@
+{
+  "name": "bingo-server",
+  "version": "1.0.0",
+  "description": "QR参加型ビンゴ大会サーバー",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3"
+  }
+}

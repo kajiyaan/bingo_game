@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ビンゴ大会 — 司会画面</title>
+<style>
+  :root{
+    --bg:#0f1226; --bg2:#171a3a; --panel:#1e2350; --panel2:#262c66;
+    --line:#3a4088; --text:#eef1ff; --muted:#9aa2d8;
+    --accent:#ffd23f; --accent2:#ff5d8f; --hit:#38d39f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI","Yu Gothic UI","Hiragino Kaku Gothic ProN",sans-serif;
+    background:radial-gradient(1200px 700px at 70% -10%,#242a63 0%,var(--bg) 55%);
+    color:var(--text); min-height:100vh; padding:22px 18px 60px;
+  }
+  h1{text-align:center; margin:4px 0 20px; font-size:26px; letter-spacing:.12em;
+     background:linear-gradient(90deg,#ffd23f,#ff5d8f,#7b8cff);
+     -webkit-background-clip:text; background-clip:text; color:transparent}
+  .wrap{max-width:1150px; margin:0 auto}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2)); border:1px solid var(--line);
+        border-radius:18px; padding:22px; box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  input,button{font-family:inherit}
+  input[type=text]{background:var(--bg2); color:var(--text); border:1px solid var(--line);
+        border-radius:10px; padding:13px 14px; font-size:17px; width:100%}
+  button{cursor:pointer; border:none; border-radius:12px; padding:14px 22px; font-size:16px;
+        font-weight:800; color:#1a1030; letter-spacing:.04em;
+        background:linear-gradient(180deg,#ffe27a,var(--accent)); box-shadow:0 6px 16px rgba(255,210,63,.3); transition:.15s}
+  button:hover{transform:translateY(-2px)} button:active{transform:translateY(0)}
+  button:disabled{opacity:.4; cursor:not-allowed; transform:none}
+  button.ghost{background:transparent; border:1px solid var(--line); color:var(--muted); box-shadow:none}
+
+  /* 作成画面 */
+  #setup{max-width:460px; margin:8vh auto 0; text-align:center}
+  #setup .card{padding:30px}
+  #setup h2{margin:0 0 18px; font-size:18px; color:var(--muted); font-weight:600}
+  #setup button{width:100%; margin-top:14px; padding:15px}
+
+  /* ダッシュボード */
+  #dash{display:none}
+  .top{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap}
+  .tname{font-size:24px; font-weight:900}
+  .grid{display:grid; grid-template-columns:1.3fr 1fr; gap:18px}
+  @media(max-width:860px){ .grid{grid-template-columns:1fr} }
+
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px}
+  .stat{background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:16px; text-align:center}
+  .stat .n{font-size:42px; font-weight:900; line-height:1}
+  .stat .l{font-size:13px; color:var(--muted); margin-top:6px; letter-spacing:.08em}
+  .stat.reach .n{color:var(--accent)}
+  .stat.bingo .n{color:var(--hit)}
+
+  .ball{width:150px; height:150px; border-radius:50%; margin:0 auto 14px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 35% 30%,#fff 0%,var(--accent) 45%,#e6a800 100%);
+    color:#3a2b00; box-shadow:0 10px 30px rgba(255,210,63,.35), inset 0 -10px 20px rgba(0,0,0,.15)}
+  .ball .letter{font-size:20px; font-weight:800; opacity:.8}
+  .ball .num{font-size:64px; font-weight:900; line-height:.9}
+  .ball.empty{background:radial-gradient(circle at 35% 30%,#2b3170,#1a1e46); color:var(--muted)}
+  .ball.empty .num{font-size:30px}
+  .ball.spin{animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(.4) rotate(-20deg);opacity:.2}70%{transform:scale(1.1)}100%{transform:scale(1)}}
+  .ball.rolling{background:radial-gradient(circle at 35% 30%,#fff 0%,#ffe27a 40%,#ff9d2e 100%);
+    box-shadow:0 10px 30px rgba(255,157,46,.5), inset 0 -10px 20px rgba(0,0,0,.15), 0 0 0 4px rgba(255,210,63,.25)}
+  .ball.rolling .num{filter:blur(.3px)}
+  .ball.land{animation:land .55s cubic-bezier(.2,1.8,.35,1)}
+  @keyframes land{0%{transform:scale(1.5) rotate(6deg)}45%{transform:scale(.9)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .draw-row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; align-items:center}
+  .sound-toggle{background:transparent; border:1px solid var(--line); color:var(--muted);
+    box-shadow:none; padding:13px 15px; font-size:18px}
+  .count{text-align:center; color:var(--muted); font-size:13px; margin-top:10px}
+
+  .history{background:var(--bg2); border:1px solid var(--line); border-radius:12px;
+    padding:12px; margin-top:16px; min-height:54px}
+  .history .nums{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+  .chip{width:34px; height:34px; border-radius:50%; background:var(--panel2);
+    display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700}
+  .chip.latest{background:var(--accent2); color:#fff; box-shadow:0 0 12px var(--accent2)}
+  .history .none{color:var(--muted); font-size:13px; text-align:center; padding:8px}
+
+  .qr-box{text-align:center}
+  .qr-box img{width:230px; height:230px; background:#fff; border-radius:14px; padding:8px}
+  .join-url{margin-top:10px; font-size:13px; color:var(--muted); word-break:break-all}
+  .join-url b{color:var(--text)}
+
+  .players{margin-top:18px}
+  .players h3{font-size:14px; color:var(--muted); margin:0 0 10px; letter-spacing:.08em}
+  .plist{display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto}
+  .pl{display:flex; align-items:center; justify-content:space-between; background:var(--bg2);
+      border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:14px}
+  .pl .tag{font-size:12px; font-weight:800; padding:3px 9px; border-radius:20px}
+  .pl.bingo .tag{background:var(--hit); color:#06231a}
+  .pl.reach .tag{background:var(--accent); color:#3a2b00}
+  .pl.playing .tag{background:var(--panel2); color:var(--muted)}
+  .empty-note{color:var(--muted); font-size:13px; text-align:center; padding:18px}
+
+  /* 達成順位 */
+  .ranking{display:flex; flex-direction:column; gap:6px}
+  .rk{display:flex; align-items:center; gap:10px; background:var(--bg2);
+      border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:15px; font-weight:700}
+  .rk .medal{font-size:18px; width:52px; text-align:center; flex-shrink:0}
+  .rk.r1{border-color:#ffd23f; background:linear-gradient(90deg,rgba(255,210,63,.18),var(--bg2))}
+  .rk.r2{border-color:#c0c8e8; background:linear-gradient(90deg,rgba(192,200,232,.14),var(--bg2))}
+  .rk.r3{border-color:#e8a06a; background:linear-gradient(90deg,rgba(232,160,106,.14),var(--bg2))}
+
+  /* ビンゴ達成の瞬間の演出 */
+  .celebrate-overlay{
+    position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center;
+    pointer-events:none;
+  }
+  .celebrate-box{
+    background:linear-gradient(135deg,#ff5d8f,#ffd23f);
+    color:#1a1030; padding:34px 60px; border-radius:26px; text-align:center;
+    box-shadow:0 20px 80px rgba(255,93,143,.5);
+    animation:celebpop .5s cubic-bezier(.2,1.6,.4,1);
+  }
+  .celebrate-box .big{font-size:52px; font-weight:900; letter-spacing:.1em}
+  .celebrate-box .who{font-size:30px; font-weight:900; margin-top:8px}
+  @keyframes celebpop{0%{transform:scale(.2) rotate(-8deg);opacity:0}100%{transform:scale(1) rotate(0)}}
+  .celebrate-overlay.out .celebrate-box{transition:.4s; transform:scale(1.15); opacity:0}
+</style>
+
+<div class="wrap">
+  <h1>🎉 ビンゴ大会 — 司会画面 🎉</h1>
+
+  <!-- 作成 -->
+  <div id="setup">
+    <div class="card">
+      <h2>大会を作成</h2>
+      <input type="text" id="tname" placeholder="大会名（例：2026 忘年会ビンゴ）" maxlength="40" autofocus>
+      <button id="createBtn">大会を作成する</button>
+    </div>
+  </div>
+
+  <!-- ダッシュボード -->
+  <div id="dash">
+    <div class="top">
+      <div class="tname" id="dashName"></div>
+      <div style="display:flex; gap:8px">
+        <button class="ghost" id="resetBtn" style="padding:10px 16px; font-size:14px">数字をリセット</button>
+        <button class="ghost" id="endBtn" style="padding:10px 16px; font-size:14px">大会を終了</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n" id="sPlayers">0</div><div class="l">参加人数</div></div>
+      <div class="stat reach"><div class="n" id="sReach">0</div><div class="l">リーチ</div></div>
+      <div class="stat bingo"><div class="n" id="sBingo">0</div><div class="l">BINGO</div></div>
+    </div>
+
+    <div class="grid">
+      <!-- 抽選 -->
+      <div class="card">
+        <div class="ball empty" id="ball">
+          <div class="letter" id="ballLetter">&nbsp;</div>
+          <div class="num" id="ballNum">READY</div>
+        </div>
+        <div class="draw-row">
+          <button id="drawBtn">🎱 抽選する（スペースキー）</button>
+          <button id="soundToggle" class="sound-toggle" title="効果音のオン/オフ">🔊</button>
+        </div>
+        <div class="count" id="count">残り 75 個</div>
+        <div class="history"><div class="nums" id="histNums"><div class="none">まだ数字は出ていません</div></div></div>
+      </div>
+
+      <!-- QR + 参加者 -->
+      <div class="card">
+        <div class="qr-box">
+          <img id="qrImg" alt="参加用QRコード">
+          <div class="join-url">スマホでQRを読み取って参加<br><b id="joinUrl"></b></div>
+        </div>
+        <div class="players">
+          <h3>🏆 ビンゴ達成順</h3>
+          <div class="ranking" id="ranking"><div class="empty-note">まだビンゴした人はいません</div></div>
+        </div>
+        <div class="players">
+          <h3>参加者リスト</h3>
+          <div class="plist" id="plist"><div class="empty-note">まだ参加者がいません</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let tid = null;
+let lastCalledLen = 0;
+let pollTimer = null;
+let prevWinnerCount = null; // null = 初回（復元時に過去の達成で演出しないため）
+
+const $ = (id) => document.getElementById(id);
+const LETTERS = ["B","I","N","G","O"];
+const HOST_KEY = "bingo_host_tid";
+
+async function createTournament(){
+  const name = $("tname").value.trim() || "ビンゴ大会";
+  const r = await fetch("/api/create", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({name})
+  });
+  const d = await r.json();
+  localStorage.setItem(HOST_KEY, d.tid);
+  showDash(d.tid, d.name, d.qr, d.joinUrl);
+}
+
+// リロード・サーバー再起動後の復元
+async function restore(){
+  const saved = localStorage.getItem(HOST_KEY);
+  if(!saved) return;
+  try{
+    const r = await fetch("/api/qr?t="+saved);
+    if(!r.ok){ localStorage.removeItem(HOST_KEY); return; }
+    const d = await r.json();
+    showDash(saved, d.name, d.qr, d.joinUrl);
+  }catch(e){}
+}
+
+function showDash(id, name, qr, joinUrl){
+  tid = id;
+  $("dashName").textContent = name;
+  $("qrImg").src = qr;
+  $("joinUrl").textContent = joinUrl;
+  $("setup").style.display = "none";
+  $("dash").style.display = "block";
+  poll();
+  pollTimer = setInterval(poll, 1500);
+}
+
+let rouletteRunning = false;
+
+async function draw(){
+  if(!tid || rouletteRunning) return;
+  $("drawBtn").disabled = true;
+  const r = await fetch("/api/draw?t="+tid, {method:"POST"});
+  const d = await r.json();
+  if(d.done && d.drawn === undefined){ // 残りなし
+    render(d); return;
+  }
+  await roulette(d.letter, d.drawn); // 演出（この間サーバーは番号を未公開のまま保持）
+  // 着地後に公開 → スマホにも配信される
+  const r2 = await fetch("/api/reveal?t="+tid, {method:"POST"});
+  const d2 = await r2.json();
+  render(d2); // 公開後の履歴・集計を反映
+  if(!d.done) $("drawBtn").disabled = false;
+}
+
+// ルーレット演出：数字が高速回転→減速→「ダン！」で確定
+// （setTimeout駆動＋経過時間ベース。タブが非アクティブでも必ず着地する）
+function roulette(letter, num){
+  return new Promise(resolve=>{
+    rouletteRunning = true;
+    const ball = $("ball");
+    ball.classList.remove("empty","spin","land");
+    ball.classList.add("rolling");
+    const DUR = 2300;
+    const start = performance.now();
+    function tick(){
+      const t = (performance.now() - start) / DUR; // 0→1
+      if(t >= 1){
+        // 確定
+        ball.classList.remove("rolling");
+        $("ballLetter").textContent = letter;
+        $("ballNum").textContent = num;
+        void ball.offsetWidth; ball.classList.add("land");
+        confirmSound();
+        if(navigator.vibrate) navigator.vibrate(120);
+        rouletteRunning = false;
+        resolve();
+        return;
+      }
+      const rnd = Math.floor(Math.random()*75) + 1;
+      $("ballLetter").textContent = LETTERS[Math.floor((rnd-1)/15)];
+      $("ballNum").textContent = rnd;
+      tickSound(t); // 終盤ほど高音になり緊張感UP
+      const interval = 40 + 240 * Math.pow(t, 2.3); // 徐々に広がる（減速）
+      setTimeout(tick, interval);
+    }
+    tick();
+  });
+}
+
+// ---------- 効果音（WebAudioで澄んだ電子音を合成） ----------
+let audioCtx = null;
+let soundOn = localStorage.getItem("bingo_sound") !== "off";
+function getCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function beep(freq, dur, type, vol){
+  if(!soundOn) return;
+  try{
+    const ctx = getCtx();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || "triangle"; o.frequency.value = freq;
+    const now = ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(vol || 0.25, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(now); o.stop(now + dur + 0.02);
+  }catch(e){}
+}
+function tickSound(t){
+  beep(520 + t*t*700, 0.05, "square", 0.12); // 減速につれ高音へ
+}
+function confirmSound(){
+  if(!soundOn) return;
+  // 「タ・ダーン！」風の明るい確定音
+  beep(784, 0.14, "triangle", 0.3);          // ソ
+  setTimeout(()=>beep(1046, 0.35, "triangle", 0.32), 120); // 上のド（伸ばす）
+  setTimeout(()=>beep(1568, 0.35, "sine", 0.15), 130);     // 倍音でキラッと
+}
+
+async function poll(){
+  if(!tid || rouletteRunning) return; // 演出中は数字を先出ししない
+  const r = await fetch("/api/host?t="+tid);
+  if(!r.ok) return;
+  const d = await r.json();
+  render(d);
+}
+
+function render(d){
+  $("sPlayers").textContent = d.players;
+  $("sReach").textContent = d.reach;
+  $("sBingo").textContent = d.bingo;
+  $("count").textContent = "残り " + (75 - d.called.length) + " 個";
+  if(d.called.length === 75) $("drawBtn").disabled = true;
+
+  // 履歴（小さい順・最新を強調）
+  const nums = $("histNums");
+  if(d.called.length === 0){
+    nums.innerHTML = '<div class="none">まだ数字は出ていません</div>';
+  } else {
+    const latest = d.called[d.called.length-1];
+    nums.innerHTML = "";
+    [...d.called].sort((a,b)=>a-b).forEach(n=>{
+      const chip=document.createElement("div");
+      chip.className="chip"+(n===latest?" latest":""); chip.textContent=n;
+      nums.appendChild(chip);
+    });
+  }
+
+  // 参加者リスト
+  const pl = $("plist");
+  if(d.list.length === 0){
+    pl.innerHTML = '<div class="empty-note">まだ参加者がいません</div>';
+  } else {
+    pl.innerHTML = "";
+    d.list.forEach(p=>{
+      const row=document.createElement("div"); row.className="pl "+p.status;
+      const label = p.status==="bingo" ? "🎉 BINGO" : p.status==="reach" ? "リーチ" : "プレイ中";
+      row.innerHTML = '<span>'+escapeHtml(p.name)+'</span><span class="tag">'+label+'</span>';
+      pl.appendChild(row);
+    });
+  }
+
+  // 🏆 達成順位
+  const rk = $("ranking");
+  const winners = d.winners || [];
+  if(winners.length === 0){
+    rk.innerHTML = '<div class="empty-note">まだビンゴした人はいません</div>';
+  } else {
+    rk.innerHTML = "";
+    winners.forEach(w=>{
+      const row = document.createElement("div");
+      row.className = "rk r"+w.rank;
+      const medal = w.rank===1 ? "🥇 1位" : w.rank===2 ? "🥈 2位" : w.rank===3 ? "🥉 3位" : w.rank+"位";
+      row.innerHTML = '<span class="medal">'+medal+'</span><span>'+escapeHtml(w.name)+'</span>';
+      rk.appendChild(row);
+    });
+  }
+
+  // 新しいビンゴ達成者がいたら祝う（初回ポーリングでは演出しない）
+  if(prevWinnerCount !== null && winners.length > prevWinnerCount){
+    const newbies = winners.slice(prevWinnerCount);
+    hostCelebrate(newbies);
+  }
+  prevWinnerCount = winners.length;
+}
+
+// ---------- ビンゴ達成の瞬間の演出 ----------
+function hostCelebrate(newWinners){
+  confetti(6000);
+  const ov = document.createElement("div");
+  ov.className = "celebrate-overlay";
+  const names = newWinners.map(w=>escapeHtml(w.name)+" さん").join("、");
+  const rankLabel = newWinners.map(w=>w.rank+"位").join("・");
+  ov.innerHTML = '<div class="celebrate-box"><div class="big">🎉 BINGO！ 🎉</div>'+
+                 '<div class="who">'+names+'（'+rankLabel+'）</div></div>';
+  document.body.appendChild(ov);
+  setTimeout(()=>{ ov.classList.add("out"); setTimeout(()=>ov.remove(), 450); }, 5000);
+}
+
+// 紙吹雪
+function confetti(durationMs){
+  const cv = document.createElement("canvas");
+  cv.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999";
+  document.body.appendChild(cv);
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.width = innerWidth * dpr, H = cv.height = innerHeight * dpr;
+  const ctx = cv.getContext("2d");
+  const colors = ["#ff5d8f","#ffd23f","#5eecc0","#8b9bff","#c78bff","#ff8f6d","#ffffff"];
+  const P = [];
+  for(let i=0;i<200;i++){
+    P.push({
+      x: Math.random()*W, y: -Math.random()*H*0.6 - 20,
+      w: (6+Math.random()*7)*dpr, h: (10+Math.random()*10)*dpr,
+      c: colors[i % colors.length],
+      vy: (2.2+Math.random()*3)*dpr, vx: (Math.random()-0.5)*2*dpr,
+      rot: Math.random()*Math.PI, vr: (Math.random()-0.5)*0.25,
+      sway: Math.random()*Math.PI*2
+    });
+  }
+  const t0 = performance.now();
+  (function frame(now){
+    const t = now - t0;
+    ctx.clearRect(0,0,W,H);
+    for(const p of P){
+      p.y += p.vy;
+      p.x += p.vx + Math.sin(t/300 + p.sway) * dpr;
+      p.rot += p.vr;
+      if(p.y > H + 20 && t < durationMs - 1800) p.y = -20;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w/2 * Math.abs(Math.sin(t/200 + p.sway)), -p.h/2, p.w * Math.abs(Math.sin(t/200 + p.sway)) || 1, p.h);
+      ctx.restore();
+    }
+    if(t < durationMs) requestAnimationFrame(frame);
+    else cv.remove();
+  })(t0);
+}
+
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+async function reset(){
+  if(!confirm("出た数字をすべてリセットします。カードはそのままです。よろしいですか？")) return;
+  const r = await fetch("/api/reset?t="+tid, {method:"POST"});
+  const d = await r.json();
+  const ball = $("ball"); ball.className="ball empty";
+  $("ballLetter").innerHTML="&nbsp;"; $("ballNum").textContent="READY";
+  $("drawBtn").disabled = false;
+  render(d);
+}
+
+async function endTournament(){
+  if(!confirm("大会を終了してデータを削除します。参加者のカードも無効になります。よろしいですか？")) return;
+  await fetch("/api/end?t="+tid, {method:"POST"});
+  localStorage.removeItem(HOST_KEY);
+  location.reload();
+}
+
+$("createBtn").addEventListener("click", createTournament);
+$("tname").addEventListener("keydown", e=>{ if(e.key==="Enter") createTournament(); });
+$("drawBtn").addEventListener("click", draw);
+$("resetBtn").addEventListener("click", reset);
+$("endBtn").addEventListener("click", endTournament);
+
+function updateSoundBtn(){ $("soundToggle").textContent = soundOn ? "🔊" : "🔇"; }
+$("soundToggle").addEventListener("click", ()=>{
+  soundOn = !soundOn;
+  localStorage.setItem("bingo_sound", soundOn ? "on" : "off");
+  updateSoundBtn();
+  if(soundOn) confirmSound(); // オンにした合図
+});
+updateSoundBtn();
+restore();
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space" && $("dash").style.display==="block" && !$("drawBtn").disabled){
+    e.preventDefault(); draw();
+  }
+});
+</script>
+</html>
