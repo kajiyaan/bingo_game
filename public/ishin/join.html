@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>以心伝心</title>
+<style>
+  :root{
+    --bg:#0f1226; --bg2:#171a3a; --panel:#1e2350; --panel2:#262c66;
+    --line:#3a4088; --text:#eef1ff; --muted:#9aa2d8;
+    --accent:#ffd23f; --accent2:#ff5d8f; --hit:#38d39f; --free:#7b8cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Segoe UI",sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#242a63 0%,var(--bg) 55%);
+    color:var(--text); min-height:100vh; padding:18px 14px 40px;
+  }
+  .wrap{max-width:460px; margin:0 auto}
+  h1{text-align:center; font-size:20px; margin:6px 0 4px; letter-spacing:.08em}
+  .sub{text-align:center; color:var(--muted); font-size:13px; margin-bottom:18px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2)); border:1px solid var(--line);
+        border-radius:18px; padding:20px; box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  input,button{font-family:inherit}
+  input[type=text]{background:var(--bg2); color:var(--text); border:1px solid var(--line);
+        border-radius:10px; padding:14px; font-size:17px; width:100%}
+  button{cursor:pointer; border:none; border-radius:12px; padding:15px; font-size:17px; font-weight:800;
+        color:#1a1030; width:100%; margin-top:14px;
+        background:linear-gradient(180deg,#ffe27a,var(--accent)); box-shadow:0 6px 16px rgba(255,210,63,.3)}
+
+  #join{max-width:400px; margin:6vh auto 0}
+  #join .join-label{text-align:center; color:var(--muted); font-size:12px; letter-spacing:.1em; margin-bottom:4px}
+  #join h2{margin:0 0 10px; font-size:24px; font-weight:900; text-align:center;
+    background:linear-gradient(90deg,#ffd23f,#ff5d8f,#8b9bff);
+    -webkit-background-clip:text; background-clip:text; color:transparent; word-break:break-word}
+  #join .t{text-align:center; color:var(--muted); font-size:14px; margin-bottom:18px}
+  .err{color:var(--accent2); text-align:center; margin-top:12px; font-size:14px}
+
+  #play{display:none}
+  .round-meta{text-align:center; color:var(--muted); font-size:13px; margin-bottom:8px}
+  .badge-minority{display:inline-block; background:linear-gradient(90deg,#ff5d8f,#c78bff); color:#fff;
+    font-size:12px; font-weight:800; padding:3px 12px; border-radius:20px}
+  .qtext{font-size:22px; font-weight:900; text-align:center; margin:8px 0 14px; line-height:1.5}
+  .countbar-track{background:var(--bg2); border-radius:8px; height:8px; overflow:hidden; margin-bottom:14px}
+  .countbar{height:100%; background:linear-gradient(90deg,#ffd23f,#ff5d8f); border-radius:8px; transition:width .2s linear}
+
+  .choices{display:flex; flex-direction:column; gap:10px}
+  .choice{
+    background:var(--bg2); border:2px solid var(--line); border-radius:14px; padding:16px;
+    font-size:18px; font-weight:800; text-align:center; cursor:pointer; user-select:none;
+    -webkit-tap-highlight-color:transparent; transition:.12s; color:var(--text); width:100%; margin:0;
+    box-shadow:none;
+  }
+  .choice:active{transform:scale(.97)}
+  .choice.sel{background:linear-gradient(180deg,#ffe27a,var(--accent)); color:#1a1030; border-color:var(--accent)}
+  .picked-note{text-align:center; color:var(--muted); font-size:12px; margin-top:10px}
+
+  .waiting{text-align:center; padding:36px 0; color:var(--muted); font-size:16px; font-weight:700}
+  .waiting .big{font-size:44px; margin-bottom:10px}
+
+  /* 結果 */
+  .verdict{text-align:center; padding:18px 0 6px}
+  .verdict .v{font-size:30px; font-weight:900; letter-spacing:.06em}
+  .verdict.win .v{color:var(--hit)}
+  .verdict.lose .v{color:var(--muted)}
+  .verdict .pts{font-size:20px; font-weight:900; color:var(--accent); margin-top:6px}
+  .mini-bars{margin-top:14px; display:flex; flex-direction:column; gap:8px}
+  .mb-row{font-size:13px}
+  .mb-label{display:flex; justify-content:space-between; font-weight:700; margin-bottom:2px}
+  .mb-track{background:var(--bg2); border-radius:6px; height:16px; overflow:hidden}
+  .mb-fill{height:100%; background:linear-gradient(90deg,#3a4088,#7b8cff); border-radius:6px}
+  .mb-row.win .mb-fill{background:linear-gradient(90deg,#ffd23f,#ff8f6d)}
+  .mb-row.mine .mb-label{color:var(--accent)}
+
+  .scorefoot{margin-top:16px; text-align:center; background:var(--bg2); border:1px solid var(--line);
+    border-radius:14px; padding:12px; font-size:15px; font-weight:800}
+  .scorefoot .rank{color:var(--accent)}
+</style>
+
+<div class="wrap">
+  <!-- 参加フォーム -->
+  <div id="join">
+    <h1>🤝 以心伝心に参加</h1>
+    <div class="card">
+      <div class="join-label">参加するルーム</div>
+      <h2 id="joinTName">読み込み中…</h2>
+      <div class="t">お名前を入れて参加してください</div>
+      <input type="text" id="pname" placeholder="お名前（ニックネームでもOK）" maxlength="20" autofocus>
+      <button id="joinBtn">参加する</button>
+      <div class="err" id="joinErr"></div>
+    </div>
+  </div>
+
+  <!-- プレイ画面 -->
+  <div id="play">
+    <h1 id="playTName">以心伝心</h1>
+    <div class="sub"><span id="playName"></span> さん</div>
+    <div class="card" id="stage">
+      <div class="waiting"><div class="big">🤝</div>お題を待っています…</div>
+    </div>
+    <div class="scorefoot" id="scorefoot">0点</div>
+  </div>
+</div>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const tid = params.get("t");
+let pid = null;
+let lastKey = null;     // phase:round:myChoice — 変化した時だけ再描画
+let deadlineAt = 0;
+let remainTotal = 1;
+let curQ = null;
+const storeKey = "ishin_"+tid;
+
+async function init(){
+  if(!tid){ $("joinErr").textContent = "URLが正しくありません。QRを読み直してください。"; return; }
+  const saved = localStorage.getItem(storeKey);
+  if(saved){
+    try{
+      const o = JSON.parse(saved);
+      const r = await fetch("/api/ishin/player?t="+tid+"&p="+o.pid);
+      if(r.ok){ pid = o.pid; startPlay(o.tName, o.name); return; }
+      localStorage.removeItem(storeKey);
+    }catch(e){ localStorage.removeItem(storeKey); }
+  }
+  try{
+    const r = await fetch("/api/room-info?t="+tid);
+    if(r.ok){
+      const d = await r.json();
+      $("joinTName").textContent = d.name;
+      document.title = d.name + " — 以心伝心";
+    } else {
+      $("joinTName").textContent = "ルームが見つかりません";
+      $("joinErr").textContent = "QRを読み直してください。";
+    }
+  }catch(e){ $("joinTName").textContent = "ルームに参加"; }
+}
+
+async function join(){
+  $("joinErr").textContent = "";
+  const name = $("pname").value.trim();
+  const r = await fetch("/api/rooms/join", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({tid, name})
+  });
+  const d = await r.json();
+  if(!r.ok){ $("joinErr").textContent = d.error || "参加できませんでした"; return; }
+  pid = d.pid;
+  localStorage.setItem(storeKey, JSON.stringify({pid, tName:d.tName, name:d.name}));
+  startPlay(d.tName, d.name);
+}
+
+function startPlay(tName, name){
+  $("join").style.display = "none";
+  $("play").style.display = "block";
+  $("playTName").textContent = tName || "以心伝心";
+  $("playName").textContent = name || "ゲスト";
+  poll();
+  setInterval(poll, 1000);
+  setInterval(tickBar, 150);
+}
+
+async function poll(){
+  const r = await fetch("/api/ishin/player?t="+tid+"&p="+pid);
+  if(!r.ok) return;
+  const d = await r.json();
+  curQ = d.q;
+  deadlineAt = d.phase==="question" ? Date.now() + d.remain : 0;
+  if(d.phase==="question" && d.remain > remainTotal) remainTotal = d.remain;
+
+  $("scorefoot").innerHTML = d.score + "点　<span class='rank'>" + (d.rank||"-") + "位</span> / " + d.players + "人中";
+
+  const key = d.phase + ":" + d.round + ":" + d.myChoice;
+  if(key === lastKey) return;
+  lastKey = key;
+  render(d);
+}
+
+function render(d){
+  const stage = $("stage");
+  if(d.phase === "lobby" || !d.q){
+    stage.innerHTML = '<div class="waiting"><div class="big">🤝</div>お題を待っています…</div>';
+    return;
+  }
+  const minority = d.minority ? '<span class="badge-minority">🔄 逆転ラウンド：少数派が勝ち！</span>' : '';
+
+  if(d.phase === "question"){
+    remainTotal = Math.max(d.remain, 1000);
+    let btns = '';
+    d.q.choices.forEach((c,i)=>{
+      btns += '<button class="choice'+(d.myChoice===i?' sel':'')+'" data-i="'+i+'">'+esc(c)+'</button>';
+    });
+    stage.innerHTML =
+      '<div class="round-meta">第'+d.round+'ラウンド '+minority+'</div>'+
+      '<div class="qtext">'+esc(d.q.text)+'</div>'+
+      '<div class="countbar-track"><div class="countbar" id="cbar" style="width:100%"></div></div>'+
+      '<div class="choices">'+btns+'</div>'+
+      '<div class="picked-note">'+(d.myChoice!==null?'タップで変更できます（締め切りまで）':'どれか1つをタップ！')+'</div>';
+    stage.querySelectorAll(".choice").forEach(b=>{
+      b.addEventListener("click", ()=>answer(parseInt(b.dataset.i)));
+    });
+    return;
+  }
+
+  if(d.phase === "result" && d.result){
+    const total = d.result.counts.reduce((a,b)=>a+b,0) || 1;
+    let verdict;
+    if(d.myChoice === null){
+      verdict = '<div class="verdict lose"><div class="v">⏰ 時間切れ…</div></div>';
+    } else if(d.won){
+      verdict = '<div class="verdict win"><div class="v">🎉 '+(d.minority?'少数派':'多数派')+'！</div><div class="pts">+'+d.result.pts+'点</div></div>';
+      confetti(2500);
+      if(navigator.vibrate) navigator.vibrate(150);
+    } else {
+      verdict = '<div class="verdict lose"><div class="v">😢 '+(d.minority?'多数派':'少数派')+'…</div></div>';
+    }
+    let bars = '';
+    d.q.choices.forEach((c,i)=>{
+      const win = d.result.winners.includes(i);
+      const mine = d.myChoice === i;
+      bars +=
+        '<div class="mb-row'+(win?' win':'')+(mine?' mine':'')+'">'+
+          '<div class="mb-label"><span>'+(win?'👑 ':'')+(mine?'▶ ':'')+esc(c)+'</span><span>'+d.result.counts[i]+'票</span></div>'+
+          '<div class="mb-track"><div class="mb-fill" style="width:'+Math.round(d.result.counts[i]/total*100)+'%"></div></div>'+
+        '</div>';
+    });
+    stage.innerHTML =
+      '<div class="round-meta">第'+d.round+'ラウンド 結果 '+minority+'</div>'+
+      '<div class="qtext">'+esc(d.q.text)+'</div>'+
+      verdict +
+      '<div class="mini-bars">'+bars+'</div>';
+  }
+}
+
+async function answer(i){
+  const r = await fetch("/api/ishin/answer", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({tid, pid, choice:i})
+  });
+  if(r.ok){
+    // 選択の見た目を即時反映
+    document.querySelectorAll(".choice").forEach(b=>b.classList.toggle("sel", parseInt(b.dataset.i)===i));
+    if(navigator.vibrate) navigator.vibrate(30);
+    lastKey = null; // 次のポーリングで確定状態を取り直す
+  }
+}
+
+function tickBar(){
+  const bar = $("cbar");
+  if(!bar || !deadlineAt) return;
+  const remain = Math.max(0, deadlineAt - Date.now());
+  bar.style.width = (remain / remainTotal * 100) + "%";
+}
+
+// 紙吹雪（正解時）
+function confetti(durationMs){
+  const cv = document.createElement("canvas");
+  cv.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999";
+  document.body.appendChild(cv);
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.width = innerWidth * dpr, H = cv.height = innerHeight * dpr;
+  const ctx = cv.getContext("2d");
+  const colors = ["#ff5d8f","#ffd23f","#5eecc0","#8b9bff","#c78bff","#ff8f6d","#ffffff"];
+  const P = [];
+  for(let i=0;i<100;i++){
+    P.push({ x: Math.random()*W, y: -Math.random()*H*0.4 - 20,
+      w:(5+Math.random()*6)*dpr, h:(8+Math.random()*9)*dpr, c:colors[i%colors.length],
+      vy:(2.5+Math.random()*3)*dpr, vx:(Math.random()-0.5)*2*dpr,
+      rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.25, sway:Math.random()*Math.PI*2 });
+  }
+  const t0 = performance.now();
+  (function frame(now){
+    const t = now - t0;
+    ctx.clearRect(0,0,W,H);
+    for(const p of P){
+      p.y += p.vy; p.x += p.vx + Math.sin(t/300+p.sway)*dpr; p.rot += p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+    }
+    if(t < durationMs) requestAnimationFrame(frame); else cv.remove();
+  })(t0);
+}
+
+function esc(s){ return (s||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+$("joinBtn").addEventListener("click", join);
+$("pname").addEventListener("keydown", e=>{ if(e.key==="Enter") join(); });
+init();
+</script>
+</html>

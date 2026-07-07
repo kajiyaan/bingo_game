@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>以心伝心 — 司会画面</title>
+<style>
+  :root{
+    --bg:#0f1226; --bg2:#171a3a; --panel:#1e2350; --panel2:#262c66;
+    --line:#3a4088; --text:#eef1ff; --muted:#9aa2d8;
+    --accent:#ffd23f; --accent2:#ff5d8f; --hit:#38d39f; --free:#7b8cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI","Yu Gothic UI","Hiragino Kaku Gothic ProN",sans-serif;
+    background:radial-gradient(1200px 700px at 70% -10%,#242a63 0%,var(--bg) 55%);
+    color:var(--text); min-height:100vh; padding:22px 18px 60px;
+  }
+  h1{text-align:center; margin:4px 0 20px; font-size:26px; letter-spacing:.12em;
+     background:linear-gradient(90deg,#ffd23f,#ff5d8f,#7b8cff);
+     -webkit-background-clip:text; background-clip:text; color:transparent}
+  .wrap{max-width:1150px; margin:0 auto}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2)); border:1px solid var(--line);
+        border-radius:18px; padding:22px; box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  input,button,select,textarea{font-family:inherit}
+  input[type=text]{background:var(--bg2); color:var(--text); border:1px solid var(--line);
+        border-radius:10px; padding:12px 14px; font-size:16px; width:100%}
+  select{background:var(--bg2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:14px}
+  button{cursor:pointer; border:none; border-radius:12px; padding:14px 22px; font-size:16px;
+        font-weight:800; color:#1a1030; letter-spacing:.04em;
+        background:linear-gradient(180deg,#ffe27a,var(--accent)); box-shadow:0 6px 16px rgba(255,210,63,.3); transition:.15s}
+  button:hover{transform:translateY(-2px)} button:active{transform:translateY(0)}
+  button:disabled{opacity:.4; cursor:not-allowed; transform:none}
+  button.ghost{background:transparent; border:1px solid var(--line); color:var(--muted); box-shadow:none}
+
+  #setup{max-width:460px; margin:8vh auto 0; text-align:center}
+  #setup .card{padding:30px}
+  #setup h2{margin:0 0 18px; font-size:18px; color:var(--muted); font-weight:600}
+  #setup button{width:100%; margin-top:14px; padding:15px}
+
+  #dash{display:none}
+  .top{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap}
+  .tname{font-size:24px; font-weight:900}
+  .grid{display:grid; grid-template-columns:1.5fr 1fr; gap:18px}
+  @media(max-width:880px){ .grid{grid-template-columns:1fr} }
+
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px}
+  .stat{background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px; text-align:center}
+  .stat .n{font-size:36px; font-weight:900; line-height:1}
+  .stat .l{font-size:13px; color:var(--muted); margin-top:6px; letter-spacing:.08em}
+  .stat.ans .n{color:var(--hit)}
+
+  /* 出題エリア */
+  .qtext{font-size:26px; font-weight:900; text-align:center; margin:6px 0 16px; line-height:1.5}
+  .qmeta{text-align:center; color:var(--muted); font-size:13px; margin-bottom:12px}
+  .badge-minority{display:inline-block; background:linear-gradient(90deg,#ff5d8f,#c78bff); color:#fff;
+    font-size:13px; font-weight:800; padding:4px 14px; border-radius:20px; margin-left:8px}
+  .countdown{font-size:52px; font-weight:900; text-align:center; color:var(--accent); margin:8px 0}
+  .countdown.warn{color:var(--accent2); animation:blink .5s infinite alternate}
+  @keyframes blink{from{opacity:1}to{opacity:.4}}
+
+  /* 結果棒グラフ */
+  .bars{display:flex; flex-direction:column; gap:10px; margin:14px 0}
+  .bar-row{display:grid; grid-template-columns:1fr; gap:4px}
+  .bar-label{display:flex; justify-content:space-between; font-size:15px; font-weight:700}
+  .bar-label .cnt{color:var(--muted)}
+  .bar-track{background:var(--bg2); border:1px solid var(--line); border-radius:10px; height:34px; overflow:hidden}
+  .bar-fill{height:100%; width:0%; border-radius:9px; transition:width .9s cubic-bezier(.2,.8,.3,1);
+    background:linear-gradient(90deg,#3a4088,#7b8cff)}
+  .bar-row.win .bar-fill{background:linear-gradient(90deg,#ffd23f,#ff8f6d)}
+  .bar-row.win .bar-label{color:var(--accent)}
+  .result-note{text-align:center; font-size:17px; font-weight:800; margin:10px 0 4px}
+  .result-note .pts{color:var(--hit)}
+
+  /* 出題コントロール */
+  .controls{margin-top:16px; border-top:1px solid var(--line); padding-top:16px}
+  .ctrl-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px}
+  .ctrl-row label{font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px}
+  .custom-box{background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:10px; display:none}
+  .custom-box.open{display:block}
+  .custom-box input{margin-bottom:8px; font-size:14px; padding:10px}
+  .custom-note{font-size:12px; color:var(--muted); margin-bottom:8px}
+
+  .qr-box{text-align:center}
+  .qr-box img{width:190px; height:190px; background:#fff; border-radius:14px; padding:8px}
+  .join-url{margin-top:8px; font-size:12px; color:var(--muted); word-break:break-all}
+
+  .ranking{margin-top:16px}
+  .ranking h3{font-size:14px; color:var(--muted); margin:0 0 10px; letter-spacing:.08em}
+  .rk{display:flex; align-items:center; justify-content:space-between; background:var(--bg2);
+      border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:14px; font-weight:700; margin-bottom:6px}
+  .rk .medal{width:56px}
+  .rk.r1{border-color:#ffd23f} .rk.r2{border-color:#c0c8e8} .rk.r3{border-color:#e8a06a}
+  .rk .sc{color:var(--accent)}
+  .empty-note{color:var(--muted); font-size:13px; text-align:center; padding:14px}
+</style>
+
+<div class="wrap">
+  <h1>🤝 以心伝心 — 司会画面</h1>
+
+  <!-- 作成 -->
+  <div id="setup">
+    <div class="card">
+      <h2>ルームを作成</h2>
+      <input type="text" id="tname" placeholder="ルーム名（例：2026 忘年会）" maxlength="40" autofocus>
+      <button id="createBtn">ルームを作成する</button>
+    </div>
+    <div style="margin-top:16px"><a href="/" style="color:var(--muted); font-size:13px; text-decoration:none">← 他のゲームを選ぶ</a></div>
+  </div>
+
+  <!-- ダッシュボード -->
+  <div id="dash">
+    <div class="top">
+      <div class="tname" id="dashName"></div>
+      <div style="display:flex; gap:8px">
+        <button class="ghost" id="resetBtn" style="padding:10px 16px; font-size:14px">得点をリセット</button>
+        <button class="ghost" id="endBtn" style="padding:10px 16px; font-size:14px">ルームを終了</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n" id="sPlayers">0</div><div class="l">参加人数</div></div>
+      <div class="stat"><div class="n" id="sRound">0</div><div class="l">ラウンド</div></div>
+      <div class="stat ans"><div class="n" id="sAnswered">-</div><div class="l">回答済み</div></div>
+    </div>
+
+    <div class="grid">
+      <!-- 出題・結果 -->
+      <div class="card">
+        <div id="qArea">
+          <div class="empty-note">「出題する」を押してゲームを始めよう</div>
+        </div>
+
+        <!-- 出題コントロール -->
+        <div class="controls" id="controls">
+          <div class="ctrl-row">
+            <button id="packBtn">🎲 内蔵お題で出題</button>
+            <button class="ghost" id="customToggle">✏️ 自作お題</button>
+            <select id="secSel">
+              <option value="15">15秒</option>
+              <option value="20" selected>20秒</option>
+              <option value="30">30秒</option>
+              <option value="60">60秒</option>
+            </select>
+            <label><input type="checkbox" id="minorityChk"> 逆転ラウンド（少数派が勝ち・+20点）</label>
+          </div>
+          <div class="custom-box" id="customBox">
+            <div class="custom-note">お題と選択肢（2〜6個）を入力。空欄の選択肢は無視されます。</div>
+            <input type="text" id="cq" placeholder="お題（例：社長の口癖といえば？）" maxlength="100">
+            <input type="text" id="c0" placeholder="選択肢1" maxlength="30">
+            <input type="text" id="c1" placeholder="選択肢2" maxlength="30">
+            <input type="text" id="c2" placeholder="選択肢3（任意）" maxlength="30">
+            <input type="text" id="c3" placeholder="選択肢4（任意）" maxlength="30">
+            <input type="text" id="c4" placeholder="選択肢5（任意）" maxlength="30">
+            <input type="text" id="c5" placeholder="選択肢6（任意）" maxlength="30">
+            <button id="customBtn" style="width:100%; margin-top:4px">このお題で出題</button>
+          </div>
+          <div id="closeRow" style="display:none; margin-top:8px">
+            <button id="closeBtn" style="background:linear-gradient(180deg,#ff8fae,#ff5d8f); color:#fff">⏱ いま締め切る</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR + ランキング -->
+      <div class="card">
+        <div class="qr-box">
+          <img id="qrImg" alt="参加用QRコード">
+          <div class="join-url">スマホでQRを読み取って参加<br><b id="joinUrl"></b></div>
+        </div>
+        <div class="ranking">
+          <h3>🏆 ランキング（上位10名）</h3>
+          <div id="rankList"><div class="empty-note">まだ参加者がいません</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let tid = null;
+let pollTimer = null;
+let lastPhase = null;
+let deadlineAt = 0; // クライアント側カウントダウン用
+
+const $ = (id) => document.getElementById(id);
+const HOST_KEY = "ishin_host_tid";
+
+async function createRoom(){
+  const name = $("tname").value.trim() || "以心伝心";
+  const r = await fetch("/api/rooms", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({gameType:"ishin", name})
+  });
+  const d = await r.json();
+  localStorage.setItem(HOST_KEY, d.tid);
+  showDash(d.tid, d.name, d.qr, d.joinUrl);
+}
+
+async function restore(){
+  const saved = localStorage.getItem(HOST_KEY);
+  if(!saved) return;
+  try{
+    const r = await fetch("/api/qr?t="+saved);
+    if(!r.ok){ localStorage.removeItem(HOST_KEY); return; }
+    const d = await r.json();
+    if(d.gameType !== "ishin"){ localStorage.removeItem(HOST_KEY); return; }
+    showDash(saved, d.name, d.qr, d.joinUrl);
+  }catch(e){}
+}
+
+function showDash(id, name, qr, joinUrl){
+  tid = id;
+  $("dashName").textContent = name;
+  $("qrImg").src = qr;
+  $("joinUrl").textContent = joinUrl;
+  $("setup").style.display = "none";
+  $("dash").style.display = "block";
+  poll();
+  pollTimer = setInterval(poll, 1000);
+  setInterval(tickCountdown, 200);
+}
+
+async function api(path, body){
+  const r = await fetch(path, body !== undefined
+    ? {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)}
+    : undefined);
+  const d = await r.json().catch(()=>null);
+  if(r.ok && d) render(d);
+  return {ok:r.ok, d};
+}
+
+async function poll(){ if(tid) await api("/api/ishin/host?t="+tid); }
+
+function render(d){
+  $("sPlayers").textContent = d.players;
+  $("sRound").textContent = d.round;
+  $("sAnswered").textContent = d.phase === "question" ? (d.answered + "/" + d.players) : "-";
+  deadlineAt = d.phase === "question" ? Date.now() + d.remain : 0;
+
+  // 出題コントロールの表示切替
+  $("packBtn").disabled = d.phase === "question";
+  $("customBtn").disabled = d.phase === "question";
+  $("closeRow").style.display = d.phase === "question" ? "block" : "none";
+
+  // 出題エリア（フェーズが変わった時だけ再構築）
+  const key = d.phase + ":" + d.round;
+  if(key !== lastPhase){
+    lastPhase = key;
+    buildQArea(d);
+  } else if(d.phase === "result" && d.result){
+    // 結果表示中は票数を最新化（遅れて反映される場合に備え）
+    updateBars(d);
+  }
+
+  // ランキング
+  const rl = $("rankList");
+  if(!d.ranking || d.ranking.length === 0){
+    rl.innerHTML = '<div class="empty-note">まだ参加者がいません</div>';
+  } else {
+    rl.innerHTML = "";
+    d.ranking.forEach((p,i)=>{
+      const row = document.createElement("div");
+      row.className = "rk r"+(i+1);
+      const medal = i===0?"🥇 1位":i===1?"🥈 2位":i===2?"🥉 3位":(i+1)+"位";
+      row.innerHTML = '<span class="medal">'+medal+'</span><span style="flex:1">'+esc(p.name)+'</span><span class="sc">'+p.score+'点</span>';
+      rl.appendChild(row);
+    });
+  }
+}
+
+function buildQArea(d){
+  const area = $("qArea");
+  if(d.phase === "lobby" || !d.q){
+    area.innerHTML = '<div class="empty-note">「出題する」を押してゲームを始めよう（内蔵お題 残り'+(d.packTotal-d.packUsed)+'問）</div>';
+    return;
+  }
+  const minorityBadge = d.minority ? '<span class="badge-minority">🔄 逆転ラウンド（少数派が勝ち）</span>' : '';
+  if(d.phase === "question"){
+    area.innerHTML =
+      '<div class="qmeta">第'+d.round+'ラウンド'+minorityBadge+'</div>'+
+      '<div class="qtext">'+esc(d.q.text)+'</div>'+
+      '<div class="countdown" id="cd">--</div>'+
+      '<div class="qmeta">みんなスマホで回答中…</div>';
+  } else if(d.phase === "result" && d.result){
+    const total = d.result.counts.reduce((a,b)=>a+b,0) || 1;
+    let bars = '';
+    d.q.choices.forEach((c,i)=>{
+      const cnt = d.result.counts[i];
+      const win = d.result.winners.includes(i);
+      bars +=
+        '<div class="bar-row'+(win?' win':'')+'" data-i="'+i+'">'+
+          '<div class="bar-label"><span>'+(win?'👑 ':'')+esc(c)+'</span><span class="cnt">'+cnt+'票</span></div>'+
+          '<div class="bar-track"><div class="bar-fill" data-w="'+Math.round(cnt/total*100)+'"></div></div>'+
+        '</div>';
+    });
+    area.innerHTML =
+      '<div class="qmeta">第'+d.round+'ラウンド 結果'+minorityBadge+'</div>'+
+      '<div class="qtext">'+esc(d.q.text)+'</div>'+
+      '<div class="bars">'+bars+'</div>'+
+      '<div class="result-note">'+ (d.minority?'少数派':'多数派') +'と一致した <b>'+d.result.gainedCount+'人</b> に <span class="pts">+'+d.result.pts+'点</span>！</div>';
+    // 棒グラフをアニメーションで伸ばす
+    requestAnimationFrame(()=>{ setTimeout(()=>{
+      area.querySelectorAll(".bar-fill").forEach(b=>{ b.style.width = b.dataset.w + "%"; });
+    }, 60); });
+  }
+}
+
+function updateBars(d){
+  const total = d.result.counts.reduce((a,b)=>a+b,0) || 1;
+  document.querySelectorAll("#qArea .bar-row").forEach(row=>{
+    const i = parseInt(row.dataset.i);
+    row.querySelector(".cnt").textContent = d.result.counts[i]+"票";
+    row.querySelector(".bar-fill").style.width = Math.round(d.result.counts[i]/total*100)+"%";
+  });
+}
+
+function tickCountdown(){
+  const cd = $("cd");
+  if(!cd || !deadlineAt) return;
+  const s = Math.max(0, Math.ceil((deadlineAt - Date.now())/1000));
+  cd.textContent = s;
+  cd.className = "countdown" + (s<=5 ? " warn" : "");
+}
+
+function esc(s){ return (s||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// ---------- 操作 ----------
+$("createBtn").addEventListener("click", createRoom);
+$("tname").addEventListener("keydown", e=>{ if(e.key==="Enter") createRoom(); });
+
+$("packBtn").addEventListener("click", ()=>{
+  api("/api/ishin/question?t="+tid, {mode:"pack", seconds: parseInt($("secSel").value), minority: $("minorityChk").checked});
+});
+$("customToggle").addEventListener("click", ()=>{ $("customBox").classList.toggle("open"); });
+$("customBtn").addEventListener("click", async ()=>{
+  const choices = ["c0","c1","c2","c3","c4","c5"].map(id=>$(id).value.trim()).filter(Boolean);
+  const {ok, d} = await api("/api/ishin/question?t="+tid, {
+    mode:"custom", text: $("cq").value, choices,
+    seconds: parseInt($("secSel").value), minority: $("minorityChk").checked
+  });
+  if(!ok) alert((d && d.error) || "出題できませんでした");
+  else { $("cq").value=""; ["c0","c1","c2","c3","c4","c5"].forEach(id=>$(id).value=""); $("customBox").classList.remove("open"); }
+});
+$("closeBtn").addEventListener("click", ()=>{ api("/api/ishin/close?t="+tid, {}); });
+$("resetBtn").addEventListener("click", async ()=>{
+  if(confirm("全員の得点とラウンドをリセットします。よろしいですか？")) await api("/api/ishin/reset?t="+tid, {});
+});
+$("endBtn").addEventListener("click", async ()=>{
+  if(!confirm("ルームを終了してデータを削除します。よろしいですか？")) return;
+  await fetch("/api/rooms/end?t="+tid, {method:"POST"});
+  localStorage.removeItem(HOST_KEY);
+  location.href = "/";
+});
+
+restore();
+</script>
+</html>

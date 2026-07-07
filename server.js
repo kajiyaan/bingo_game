@@ -10,6 +10,7 @@ const roomsLib = require("./lib/rooms");
 // ---------- ゲーム登録（新しいゲームはここに1行足す） ----------
 const GAMES = {
   bingo: require("./games/bingo"),
+  ishin: require("./games/ishin"),
 };
 
 roomsLib.load(GAMES);
