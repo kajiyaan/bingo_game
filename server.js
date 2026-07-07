@@ -11,6 +11,7 @@ const roomsLib = require("./lib/rooms");
 const GAMES = {
   bingo: require("./games/bingo"),
   ishin: require("./games/ishin"),
+  quiz: require("./games/quiz"),
 };
 
 roomsLib.load(GAMES);
