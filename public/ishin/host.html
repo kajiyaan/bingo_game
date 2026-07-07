@@ -134,7 +134,7 @@
         <!-- 出題コントロール -->
         <div class="controls" id="controls">
           <div class="ctrl-row">
-            <button id="packBtn">🎲 内蔵お題で出題</button>
+            <button id="packBtn">🎲 お題から出題</button>
             <button class="ghost" id="customToggle">✏️ 自作お題</button>
             <select id="secSel">
               <option value="15">15秒</option>
@@ -271,7 +271,7 @@ function render(d){
 function buildQArea(d){
   const area = $("qArea");
   if(d.phase === "lobby" || !d.q){
-    area.innerHTML = '<div class="empty-note">「出題する」を押してゲームを始めよう（内蔵お題 残り'+(d.packTotal-d.packUsed)+'問）</div>';
+    area.innerHTML = '<div class="empty-note">「出題する」を押してゲームを始めよう（お題 残り'+(d.packTotal-d.packUsed)+'問）</div>';
     return;
   }
   const minorityBadge = d.minority ? '<span class="badge-minority">🔄 逆転ラウンド（少数派が勝ち）</span>' : '';

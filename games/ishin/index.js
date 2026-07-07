@@ -5,7 +5,7 @@
 const { sendJSON, readBody } = require("../../lib/util");
 const roomsLib = require("../../lib/rooms");
 
-// ---------- 内蔵お題パック（ここに足せば増える） ----------
+// ---------- お題パック（ここに足せば増える） ----------
 const PACK = [
   { text: "朝ごはんといえば？", choices: ["🍞 パン", "🍚 ごはん", "🥣 シリアル", "☕ コーヒーだけ"] },
   { text: "宴会の〆といえば？", choices: ["🍜 ラーメン", "🍨 アイス", "🍵 お茶漬け", "🍰 スイーツ"] },
@@ -95,7 +95,7 @@ async function handle(req, res, url, sub) {
     return sendJSON(res, 200, hostView(t)), true;
   }
 
-  // 出題（mode: "pack"=内蔵お題から / "custom"=自作）
+  // 出題（mode: "pack"=お題パックから / "custom"=自作）
   if (sub === "/question" && req.method === "POST") {
     const t = room();
     if (!t) return sendJSON(res, 404, { error: "ルームが見つかりません" }), true;
@@ -110,7 +110,7 @@ async function handle(req, res, url, sub) {
         return sendJSON(res, 400, { error: "お題と選択肢（2〜6個）を入力してください" }), true;
       q = { text, choices };
     } else {
-      // 内蔵パックから未出題をランダムに（使い切ったらリセット）
+      // お題パックから未出題をランダムに（使い切ったらリセット）
       if (st.usedPack.length >= PACK.length) st.usedPack = [];
       const rest = PACK.map((_, i) => i).filter((i) => !st.usedPack.includes(i));
       const idx = rest[Math.floor(Math.random() * rest.length)];

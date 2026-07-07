@@ -157,6 +157,15 @@
               <option value="20" selected>20秒</option>
               <option value="30">30秒</option>
             </select>
+            <label style="font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px">出題数
+              <select id="limitSel">
+                <option value="0">全部</option>
+                <option value="5">5問</option>
+                <option value="10">10問</option>
+                <option value="15">15問</option>
+                <option value="20">20問</option>
+              </select>
+            </label>
             <button id="closeBtn" class="pink" style="display:none">⏱ いま締め切る</button>
           </div>
 
@@ -165,7 +174,7 @@
             <div id="qList"><div class="empty-note">まだ問題がありません</div></div>
             <div class="ctrl-row" style="margin-top:10px">
               <button class="ghost" id="qaddToggle">✏️ 問題を追加</button>
-              <button class="ghost" id="sampleBtn">🎲 サンプル問題を読み込む（10問）</button>
+              <button class="ghost" id="sampleBtn">🎲 問題を読み込む（30問）</button>
             </div>
             <div class="qadd" id="qadd">
               <div class="qadd-note">問題文と選択肢（2〜4個）を入力し、正解に ● を付けてください。</div>
@@ -251,11 +260,15 @@ async function poll(){ if(tid) await api("/api/quiz/host?t="+tid); }
 function render(d){
   lastData = d;
   $("sPlayers").textContent = d.players;
-  $("sQNo").textContent = d.qIndex >= 0 ? (d.qIndex+1)+"/"+d.qTotal : "-/"+d.qTotal;
+  $("sQNo").textContent = d.qIndex >= 0 ? (d.qIndex+1)+"/"+d.playTotal : "-/"+d.playTotal;
   $("sAnswered").textContent = d.phase === "question" ? (d.answered + "/" + d.players) : "-";
   deadlineAt = d.phase === "question" ? Date.now() + d.remain : 0;
 
-  const hasNext = d.qIndex + 1 < d.qTotal;
+  // 出題数セレクタ（操作中でなければサーバー値に同期）
+  const ls = $("limitSel");
+  if(document.activeElement !== ls && String(d.playLimit) !== ls.value) ls.value = String(d.playLimit);
+
+  const hasNext = d.qIndex + 1 < d.playTotal;
   $("startBtn").disabled = d.phase === "question" || !hasNext;
   $("startBtn").textContent = d.qIndex < 0 ? "▶ 第1問を出題" : hasNext ? "▶ 次の問題（第"+(d.qIndex+2)+"問）" : "▶ 出題する";
   $("closeBtn").style.display = d.phase === "question" ? "inline-block" : "none";
@@ -271,7 +284,7 @@ function render(d){
     $("qCount").textContent = d.questions.length;
     const ql = $("qList");
     if(d.questions.length === 0){
-      ql.innerHTML = '<div class="empty-note">まだ問題がありません。「問題を追加」か「サンプル問題」からどうぞ</div>';
+      ql.innerHTML = '<div class="empty-note">まだ問題がありません。「問題を追加」か「問題を読み込む」からどうぞ</div>';
     } else {
       ql.innerHTML = "";
       d.questions.forEach((q,i)=>{
@@ -313,7 +326,7 @@ function buildQArea(d){
     let ch = '';
     d.q.choices.forEach(c=>{ ch += '<div class="qchoice">'+esc(c)+'</div>'; });
     area.innerHTML =
-      '<div class="qmeta">第'+(d.qIndex+1)+'問 / 全'+d.qTotal+'問</div>'+
+      '<div class="qmeta">第'+(d.qIndex+1)+'問 / 全'+d.playTotal+'問</div>'+
       '<div class="qtext">'+esc(d.q.text)+'</div>'+
       '<div class="countdown" id="cd">--</div>'+
       '<div class="qchoices">'+ch+'</div>';
@@ -410,6 +423,9 @@ $("startBtn").addEventListener("click", ()=>{
 });
 $("closeBtn").addEventListener("click", ()=>{ api("/api/quiz/close?t="+tid, {}); });
 $("finalBtn").addEventListener("click", ()=>{ api("/api/quiz/final?t="+tid, {}); });
+$("limitSel").addEventListener("change", ()=>{
+  api("/api/quiz/set-limit?t="+tid, {limit: parseInt($("limitSel").value)});
+});
 $("sampleBtn").addEventListener("click", ()=>{ api("/api/quiz/load-sample?t="+tid, {}); });
 $("qaddToggle").addEventListener("click", ()=>{ $("qadd").classList.toggle("open"); });
 $("qaddBtn").addEventListener("click", async ()=>{

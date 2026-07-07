@@ -5,7 +5,7 @@
 const { sendJSON, readBody } = require("../../lib/util");
 const roomsLib = require("../../lib/rooms");
 
-// ---------- サンプル問題（動作確認やつなぎに。correct = 正解のindex） ----------
+// ---------- 問題パック（ここに足せば増える。correct = 正解のindex） ----------
 const SAMPLE = [
   { text: "日本で2番目に高い山は？", choices: ["北岳", "富士山", "槍ヶ岳", "立山"], correct: 0 },
   { text: "1ダースは何個？", choices: ["10個", "12個", "6個", "20個"], correct: 1 },
@@ -17,6 +17,26 @@ const SAMPLE = [
   { text: "成人の人間の骨はおよそ何本？", choices: ["約100本", "約200本", "約300本", "約500本"], correct: 1 },
   { text: "日本で一番長い川は？", choices: ["利根川", "石狩川", "信濃川", "北上川"], correct: 2 },
   { text: "「サボる」の語源になった外国語は？", choices: ["サボタージュ", "サバイバル", "サポート", "サボテン"], correct: 0 },
+  { text: "世界で一番小さい国は？", choices: ["バチカン市国", "モナコ", "サンマリノ", "ツバル"], correct: 0 },
+  { text: "富士山の高さは？", choices: ["3576m", "3776m", "3876m", "3976m"], correct: 1 },
+  { text: "パンダの尻尾の色は？", choices: ["黒", "しましま", "白", "グレー"], correct: 2 },
+  { text: "江戸時代はおよそ何年続いた？", choices: ["約160年", "約210年", "約310年", "約260年"], correct: 3 },
+  { text: "人間の体で一番大きい臓器は？", choices: ["皮膚", "肝臓", "脳", "肺"], correct: 0 },
+  { text: "オセロで最初に置かれている石は何個？", choices: ["2個", "4個", "6個", "8個"], correct: 1 },
+  { text: "「元旦」が本来指すのは？", choices: ["1月1日全体", "正月三が日", "1月1日の朝", "大晦日の夜"], correct: 2 },
+  { text: "日本の国鳥は？", choices: ["ツル", "トキ", "スズメ", "キジ"], correct: 3 },
+  { text: "カタツムリの歯の数はおよそ？", choices: ["約1万本", "0本", "約100本", "約1000本"], correct: 0 },
+  { text: "東京タワーとスカイツリー、高さの差はおよそ？", choices: ["約100m", "約300m", "約200m", "約400m"], correct: 1 },
+  { text: "1円玉の重さは？", choices: ["0.5g", "2g", "1g", "3g"], correct: 2 },
+  { text: "世界で母語の話者が一番多い言語は？", choices: ["英語", "スペイン語", "ヒンディー語", "中国語"], correct: 3 },
+  { text: "ノーベル賞に「ない」部門は？", choices: ["数学賞", "文学賞", "平和賞", "経済学賞"], correct: 0 },
+  { text: "バナナは植物としては？", choices: ["木", "草", "つる植物", "サボテンの仲間"], correct: 1 },
+  { text: "日本で一番多い名字は？", choices: ["鈴木", "田中", "佐藤", "高橋"], correct: 2 },
+  { text: "虹の一番外側（上）の色は？", choices: ["紫", "青", "黄", "赤"], correct: 3 },
+  { text: "「指切りげんまん」の「げんまん」の意味は？", choices: ["拳で1万回", "元の約束", "厳しい誓い", "神への祈り"], correct: 0 },
+  { text: "ボウリングのピンは何本？", choices: ["9本", "10本", "11本", "12本"], correct: 1 },
+  { text: "「敬老の日」は何月？", choices: ["10月", "11月", "9月", "8月"], correct: 2 },
+  { text: "シュークリームの「シュー」の意味は？", choices: ["靴", "砂糖", "ふわふわ", "キャベツ"], correct: 3 },
 ];
 
 const BASE_PTS = 100;   // 正解の基礎点
@@ -62,12 +82,18 @@ function ranking(room) {
     .sort((a, b) => b.score - a.score);
 }
 
+// 実際に出題する問題数（出題数設定と問題リストの少ない方）
+function playTotal(st) {
+  return st.limit > 0 ? Math.min(st.limit, st.questions.length) : st.questions.length;
+}
+
 function hostView(room) {
   const st = room.state;
   const q = st.qIndex >= 0 ? st.questions[st.qIndex] : null;
   return {
     name: room.name, phase: st.phase,
     qIndex: st.qIndex, qTotal: st.questions.length,
+    playLimit: st.limit || 0, playTotal: playTotal(st),
     // 出題中は正解を混ぜない（プロジェクター映え対策）。結果以降で開示
     q: q ? { text: q.text, choices: q.choices, correct: st.phase === "question" ? undefined : q.correct } : null,
     remain: st.phase === "question" ? Math.max(0, st.deadline - Date.now()) : 0,
@@ -125,11 +151,28 @@ async function handle(req, res, url, sub) {
     return sendJSON(res, 200, hostView(t)), true;
   }
 
-  // サンプル問題を読み込む（既存リストの後ろに追加）
+  // 問題パックを読み込む（シャッフルして追加。すでにある問題は重複させない）
   if (sub === "/load-sample" && req.method === "POST") {
     const t = room();
     if (!t) return sendJSON(res, 404, { error: "ルームが見つかりません" }), true;
-    t.state.questions.push(...SAMPLE.map((q) => ({ ...q, choices: [...q.choices] })));
+    const existing = new Set(t.state.questions.map((q) => q.text));
+    const pool = SAMPLE.filter((q) => !existing.has(q.text))
+      .map((q) => ({ ...q, choices: [...q.choices] }));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    t.state.questions.push(...pool);
+    roomsLib.save();
+    return sendJSON(res, 200, hostView(t)), true;
+  }
+
+  // 出題数を設定（0 = 全問）
+  if (sub === "/set-limit" && req.method === "POST") {
+    const t = room();
+    if (!t) return sendJSON(res, 404, { error: "ルームが見つかりません" }), true;
+    const body = await readBody(req);
+    t.state.limit = Math.min(100, Math.max(0, body.limit | 0));
     roomsLib.save();
     return sendJSON(res, 200, hostView(t)), true;
   }
@@ -141,7 +184,7 @@ async function handle(req, res, url, sub) {
     const st = t.state;
     const body = await readBody(req);
     if (st.phase === "question") return sendJSON(res, 400, { error: "出題中です" }), true;
-    if (st.qIndex + 1 >= st.questions.length) return sendJSON(res, 400, { error: "問題がありません。追加してください" }), true;
+    if (st.qIndex + 1 >= playTotal(st)) return sendJSON(res, 400, { error: "出題できる問題がありません（出題数の上限か、問題切れです）" }), true;
     const seconds = Math.min(120, Math.max(5, (body.seconds | 0) || DEFAULT_SECONDS));
     st.qIndex++;
     st.answers = {};
@@ -196,7 +239,7 @@ async function handle(req, res, url, sub) {
     const my = st.answers[pid];
     const out = {
       tName: t.name, name: t.players[pid].name,
-      phase: st.phase, qNo: st.qIndex + 1, qTotal: st.questions.length,
+      phase: st.phase, qNo: st.qIndex + 1, qTotal: playTotal(st),
       score: t.players[pid].score || 0, rank: myRank, players: rk.length,
       q: q && st.phase !== "lobby" ? { text: q.text, choices: q.choices } : null,
       remain: st.phase === "question" ? Math.max(0, st.deadline - Date.now()) : 0,
@@ -239,7 +282,7 @@ module.exports = {
   icon: "⚡",
   description: "4択クイズに全員参加。正解＋回答スピードでポイント！会社オリジナル問題で盛り上がろう。",
   createState() {
-    return { phase: "lobby", questions: [], qIndex: -1, deadline: 0, duration: 0, answers: {}, lastResult: null };
+    return { phase: "lobby", questions: [], qIndex: -1, deadline: 0, duration: 0, answers: {}, lastResult: null, limit: 0 };
   },
   createPlayerData() { return { score: 0 }; },
   joinResponse() { return {}; },
