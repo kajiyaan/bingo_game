@@ -140,14 +140,14 @@ async function init(){
       const o = JSON.parse(saved);
       pid = o.pid; card = o.card;
       // 有効性チェック
-      const r = await fetch("/api/player?t="+tid+"&p="+pid);
+      const r = await fetch("/api/bingo/player?t="+tid+"&p="+pid);
       if(r.ok){ startPlay(o.tName, o.name); return; }
       localStorage.removeItem(storeKey);
     }catch(e){ localStorage.removeItem(storeKey); }
   }
   // 参加フォーム：大会名を表示
   try{
-    const r = await fetch("/api/info?t="+tid);
+    const r = await fetch("/api/room-info?t="+tid);
     if(r.ok){
       const d = await r.json();
       $("joinTName").textContent = d.name;
@@ -162,7 +162,7 @@ async function init(){
 async function join(){
   $("joinErr").textContent = "";
   const name = $("pname").value.trim();
-  const r = await fetch("/api/join", {
+  const r = await fetch("/api/rooms/join", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({tid, name})
   });
@@ -268,7 +268,7 @@ function celebrateBingo(){
 
 async function tapCell(r,c){
   const prev = curState;
-  const res = await fetch("/api/mark", {
+  const res = await fetch("/api/bingo/mark", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({tid, pid, r, c})
   });
@@ -303,7 +303,7 @@ const MISS_COMMENTS = [
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 async function poll(){
-  const r = await fetch("/api/player?t="+tid+"&p="+pid);
+  const r = await fetch("/api/bingo/player?t="+tid+"&p="+pid);
   if(!r.ok) return;
   const d = await r.json();
   lastCalled = d.called;

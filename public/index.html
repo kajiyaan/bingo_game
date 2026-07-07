@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>パーティゲームズ — ゲームを選ぶ</title>
+<style>
+  :root{
+    --bg:#0f1226; --bg2:#171a3a; --panel:#1e2350; --panel2:#262c66;
+    --line:#3a4088; --text:#eef1ff; --muted:#9aa2d8;
+    --accent:#ffd23f; --accent2:#ff5d8f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+    background:radial-gradient(1200px 700px at 70% -10%,#242a63 0%,var(--bg) 55%);
+    color:var(--text); min-height:100vh; padding:40px 18px 60px;
+  }
+  .wrap{max-width:880px; margin:0 auto}
+  h1{
+    text-align:center; margin:0 0 6px; font-size:34px; letter-spacing:.14em;
+    background:linear-gradient(90deg,#ffd23f,#ff5d8f,#7b8cff);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{text-align:center; color:var(--muted); font-size:14px; margin-bottom:34px}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:18px}
+  .game{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--line); border-radius:18px; padding:24px;
+    box-shadow:0 12px 40px rgba(0,0,0,.35);
+    display:flex; flex-direction:column; gap:10px;
+    transition:.18s;
+  }
+  .game.playable:hover{transform:translateY(-4px); border-color:var(--accent);
+    box-shadow:0 16px 48px rgba(255,210,63,.15)}
+  .game .icon{font-size:44px; line-height:1}
+  .game h2{margin:0; font-size:20px}
+  .game p{margin:0; color:var(--muted); font-size:13px; line-height:1.7; flex:1}
+  .game a.start{
+    display:block; text-align:center; text-decoration:none; margin-top:6px;
+    padding:13px; border-radius:12px; font-weight:800; font-size:15px; color:#1a1030;
+    background:linear-gradient(180deg,#ffe27a,var(--accent));
+    box-shadow:0 6px 16px rgba(255,210,63,.3); transition:.15s;
+  }
+  .game a.start:hover{transform:translateY(-2px)}
+  .game.soon{opacity:.55}
+  .game.soon .badge{
+    display:inline-block; align-self:flex-start; font-size:11px; font-weight:800; letter-spacing:.08em;
+    background:var(--panel2); color:var(--muted); border:1px solid var(--line);
+    border-radius:20px; padding:5px 12px; margin-top:6px;
+  }
+  .foot{text-align:center; color:var(--muted); font-size:12px; margin-top:40px; line-height:1.8}
+</style>
+
+<div class="wrap">
+  <h1>🎉 パーティゲームズ</h1>
+  <div class="sub">遊びたいゲームを選んでください。参加者はQRコードを読むだけ！</div>
+  <div class="grid" id="games"></div>
+  <div class="foot">スマホ・PCどちらでも遊べます／アプリのインストール不要</div>
+</div>
+
+<script>
+// 近日公開の予告カード（次に作るゲームのビジョン）
+const COMING_SOON = [
+  {icon:"⚡", title:"早押しクイズ", description:"司会が問題を出して、みんなで早押し。正解数とスピードでランキング。"},
+  {icon:"🗳️", title:"みんなで投票", description:"お題にみんなで回答して投票。大喜利・アンケートに。"},
+];
+
+async function init(){
+  const grid = document.getElementById("games");
+  try{
+    const r = await fetch("/api/games");
+    const d = await r.json();
+    d.games.forEach(g=>{
+      const el = document.createElement("div");
+      el.className = "game playable";
+      el.innerHTML =
+        '<div class="icon">'+g.icon+'</div>'+
+        '<h2>'+g.title+'</h2>'+
+        '<p>'+g.description+'</p>'+
+        '<a class="start" href="'+g.hostUrl+'">はじめる</a>';
+      grid.appendChild(el);
+    });
+  }catch(e){
+    grid.innerHTML = '<p style="color:var(--muted)">ゲーム一覧を取得できませんでした。再読み込みしてください。</p>';
+  }
+  COMING_SOON.forEach(g=>{
+    const el = document.createElement("div");
+    el.className = "game soon";
+    el.innerHTML =
+      '<div class="icon">'+g.icon+'</div>'+
+      '<h2>'+g.title+'</h2>'+
+      '<p>'+g.description+'</p>'+
+      '<span class="badge">近日公開</span>';
+    grid.appendChild(el);
+  });
+}
+init();
+</script>
+</html>

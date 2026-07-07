@@ -1,3 +1,4 @@
 node_modules/
 bingo-data.json
+rooms-data.json
 *.log

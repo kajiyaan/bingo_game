@@ -132,6 +132,7 @@
       <input type="text" id="tname" placeholder="大会名（例：2026 忘年会ビンゴ）" maxlength="40" autofocus>
       <button id="createBtn">大会を作成する</button>
     </div>
+    <div style="margin-top:16px"><a href="/" style="color:var(--muted); font-size:13px; text-decoration:none">← 他のゲームを選ぶ</a></div>
   </div>
 
   <!-- ダッシュボード -->
@@ -196,9 +197,9 @@ const HOST_KEY = "bingo_host_tid";
 
 async function createTournament(){
   const name = $("tname").value.trim() || "ビンゴ大会";
-  const r = await fetch("/api/create", {
+  const r = await fetch("/api/rooms", {
     method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({name})
+    body: JSON.stringify({gameType:"bingo", name})
   });
   const d = await r.json();
   localStorage.setItem(HOST_KEY, d.tid);
@@ -233,14 +234,14 @@ let rouletteRunning = false;
 async function draw(){
   if(!tid || rouletteRunning) return;
   $("drawBtn").disabled = true;
-  const r = await fetch("/api/draw?t="+tid, {method:"POST"});
+  const r = await fetch("/api/bingo/draw?t="+tid, {method:"POST"});
   const d = await r.json();
   if(d.done && d.drawn === undefined){ // 残りなし
     render(d); return;
   }
   await roulette(d.letter, d.drawn); // 演出（この間サーバーは番号を未公開のまま保持）
   // 着地後に公開 → スマホにも配信される
-  const r2 = await fetch("/api/reveal?t="+tid, {method:"POST"});
+  const r2 = await fetch("/api/bingo/reveal?t="+tid, {method:"POST"});
   const d2 = await r2.json();
   render(d2); // 公開後の履歴・集計を反映
   if(!d.done) $("drawBtn").disabled = false;
@@ -316,7 +317,7 @@ function confirmSound(){
 
 async function poll(){
   if(!tid || rouletteRunning) return; // 演出中は数字を先出ししない
-  const r = await fetch("/api/host?t="+tid);
+  const r = await fetch("/api/bingo/host?t="+tid);
   if(!r.ok) return;
   const d = await r.json();
   render(d);
@@ -437,7 +438,7 @@ function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':
 
 async function reset(){
   if(!confirm("出た数字をすべてリセットします。カードはそのままです。よろしいですか？")) return;
-  const r = await fetch("/api/reset?t="+tid, {method:"POST"});
+  const r = await fetch("/api/bingo/reset?t="+tid, {method:"POST"});
   const d = await r.json();
   const ball = $("ball"); ball.className="ball empty";
   $("ballLetter").innerHTML="&nbsp;"; $("ballNum").textContent="READY";
@@ -447,7 +448,7 @@ async function reset(){
 
 async function endTournament(){
   if(!confirm("大会を終了してデータを削除します。参加者のカードも無効になります。よろしいですか？")) return;
-  await fetch("/api/end?t="+tid, {method:"POST"});
+  await fetch("/api/rooms/end?t="+tid, {method:"POST"});
   localStorage.removeItem(HOST_KEY);
   location.reload();
 }
